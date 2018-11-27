@@ -1,0 +1,69 @@
+---
+title: "Multinomial Logistic Regression in R, Stata and SAS"
+author: "Yunsun Lee, Hui Xu, Su I Iao (Group 12)"
+date: "November 25, 2018"
+output: html_document
+---
+## SAS
+### Load the data
+We start with loading the data and then present the first 5 rows. 
+```stata
+clear all
+* Loading the data
+import delimited iris.csv 
+list in 1/5
+```
+![](https://github.com/xhui7819/STATS506_GROUP12/raw/master/Stata/Frist_5_Rows.png)
+
+### Description of Data
+Then we get the basic description for both predictors and respones. 
+```stata
+* Discription of Data
+summarize sepal_length sepal_width petal_length petal_width
+```
+![](https://github.com/xhui7819/STATS506_GROUP12/raw/master/Stata/Summary_Predictors.png)
+
+```stata
+tab species 
+```
+![](https://github.com/xhui7819/STATS506_GROUP12/raw/master/Stata/Summary_Response.png)
+
+### Separate the data into train set and test set
+We partition the data into two parts - a training set consisting of the first 40 observations for each species and a testing set of the remaining 10 observations for each species. We use a training set to build and estimate the model and a testing set to see how well the model does on new data not used in the constuction of the model.
+```stata
+* Separate the data into train set and test set
+gene seqnum=_n
+generate training = 1 if seqnum <= 40 | seqnum >= 51 & seqnum <= 90 | seqnum >= 101 & seqnum <= 140
+replace training = 0 if training == .
+```
+
+### Build the multinomial logistic regression model by train set
+Below we use the mlogit command to estimate a multinomial logistic regression model. In the model, we choose to pick virginica as the baseline category and then fitting the model.
+```stata
+* In the model, we choose to pick virginica as the baseline category 
+* Since mlogit only accepts numeric arguments, thus encoding string into numeric
+encode species, generate(new_species)
+mlogit new_species sepal_length sepal_width petal_length petal_width if training == 1, base(3)
+```
+![](https://github.com/xhui7819/STATS506_GROUP12/raw/master/Stata/Logistic_Regression.png)
+
+From the output, we can notice the likelihood ratio chi-square is 251.82 with p-value 0, which means our model fits significantly better than model with no predictors. 
+
+From the regression coefficient, we notice length and width of petal are negatively related with relatively log odds in both case; while length and width of sepal is positively related with log odds in both case. For example, a one-unit increase in the variable sepal_length is associated with a 2.46 increase in the relative log odds of being in setosa v.s. virginica. 
+
+##### Relative Risk 
+Relative Risk is defined as the ratio of probability of one outcome category over the probability of baseline category. In this case, the relative risk in setosa v.s. virginica is the ratio of probability of setosa over the probability of virginica. Here we can use the mlogit, rrr command to get the regression results in the form of relative risk ratios. 
+
+```stata
+mlogit, rrr
+```
+![](https://github.com/xhui7819/STATS506_GROUP12/raw/master/Stata/Relative_Risk.png)
+In fact, the relative risk in the table can be obtained by exponentiating the regression coefficients above. For instance, the ralative risk for the on-unit increase in the  variable sepal_length is 11.698 insetosa v.s. virginica, which can be obtained by exp(2.459417) from the output of regression coefficients. 
+
+### Test the accuracy of model by test set
+Then we test our model using the test dataset. 
+
+### References
+- See [UCLA Institute for Digital Research and Education](https://stats.idre.ucla.edu/sas/dae/multinomiallogistic-regression/) for another example of multinomial logistic regression and other statistical techniques in mutliple programming languages.
+
+
