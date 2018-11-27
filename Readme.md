@@ -2,17 +2,17 @@
 
 This repo contains files of our final project "Multinomial Logistic Regression (all vs reference) using IRIS" in Stats 506, Fall 2018.
 
-  - The script [Group_12](./Group_12.Rmd) has rmd code for our project.
+  - The script [Group_12.Rmd](./Group_12.Rmd) has rmd code for our project.
 
   - The picture [iris_picture](./iris_picture.png) is to help people find the difference among Iris setosa, Iris virginica and Iris versicolor.
 
 ### R
 
-The script [Group_12](./R/Group_12.R) has R code for our project. 
+The script [Group_12.R](./R/Group_12.R) has R code for our project. 
 
 ### SAS
 
-The script [Group_12](./SAS/Group_12.sas) has SAS code for our project. 
+The script [Group_12.sas](./SAS/Group_12.sas) has SAS code for our project. 
 
 The pictures of the result:
   - [sas_data_summary](./SAS/sas_data_summary.PNG)
@@ -22,7 +22,7 @@ The pictures of the result:
 
 ### Stata
 
-The script [Group_12](./SAS/Group_12.do) has Stata code for our project. 
+The script [Group_12.do](./SAS/Group_12.do) has Stata code for our project. 
 
 The pictures of the result:
   - [Frist_5_Rows](./Stata/Frist_5_Rows.png)
