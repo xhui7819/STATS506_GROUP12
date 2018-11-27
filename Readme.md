@@ -22,7 +22,7 @@ The pictures of the result:
 
 ### Stata
 
-The script [Group_12.do](./SAS/Group_12.do) has Stata code for our project. 
+The script [Group_12.do](./Stata/Group_12.do) has Stata code for our project. 
 
 The pictures of the result:
   - [Frist_5_Rows](./Stata/Frist_5_Rows.png)
