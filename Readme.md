@@ -2,9 +2,9 @@
 
 This repo contains files of our final project "Multinomial Logistic Regression (all vs reference) using IRIS" in Stats 506, Fall 2018.
 
-The script [Group_12](./Group_12.Rmd) has rmd code for our project.
+  - The script [Group_12](./Group_12.Rmd) has rmd code for our project.
 
-The picture [iris_picture](./iris_picture.png) is to help people find the difference among Iris setosa, Iris virginica and Iris versicolor.
+  - The picture [iris_picture](./iris_picture.png) is to help people find the difference among Iris setosa, Iris virginica and Iris versicolor.
 
 ### R
 
