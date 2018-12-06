@@ -1,0 +1,444 @@
+---
+title: "Multinomial Logistic Regression in R, Stata and SAS"
+author: "Yunsun Lee, Hui Xu, Su I Iao (Group 12)"
+date: "November 27, 2018"
+output:
+  html_document: default
+  pdf_document: default
+---
+## Purpose Of This Tutorial
+The purpose of this tutorial is to demonstrate multinomial logistic regression in R(multinom), Stata(mlogit) and SAS(proc logistic).
+
+## Algorithm Description
+ The following is a brief summary of the [multinomial logistic regression(All vs Reference)](https://en.wikipedia.org/wiki/Multinomial_logistic_regression).
+The way to implement the multi-category logistic regression model is to run K-1 independent binary logistic regression model for all K possible classification results. During the operation, one of the categories is considered as the reference(base) category, and then the other k-1 categories and the reference(base) category we choose are respectively regression.In this way, if we choose the result K as the main category, we can get the following formula:
+
+$$ln\frac{Pr(Y_{i} = 1)}{Pr(Y_{i} = K)} = \beta_{1}\cdot X_{i}$$
+$$ln\frac{Pr(Y_{i} = 2)}{Pr(Y_{i} = K)} = \beta_{2}\cdot X_{i}$$
+$$\cdots$$
+$$ln\frac{Pr(Y_{i} = K-1)}{Pr(Y_{i} = K)} = \beta_{K-1}\cdot X_{i}$$
+It is important to note that in the above formula we have introduced a set of regression coefficients corresponding to all possible results. Then, the left and right sides of the formula can be indexed to obtain the following formula:
+$$Pr(Y_{i} = 1) = Pr(Y_{i} = K) \cdot e^{\beta_{1}\cdot X_{i}}$$
+$$Pr(Y_{i} = 2) = Pr(Y_{i} = K) \cdot e^{\beta_{2}\cdot X_{i}}$$
+$$\cdots$$
+$$Pr(Y_{i} = K-1) = Pr(Y_{i} = K) \cdot e^{\beta_{K-1}\cdot X_{i}}$$
+Note that the probability that we end up with must add up to 1, based on the fact that we can get:
+$$Pr(Y_{i} = K) = 1 - \sum^{K-1}_{k=1}Pr(Y_{i} = K)\cdot e^{\beta_{k}\cdot X_{i}}$$
+$$Pr(Y_{i} = K) = \frac{1}{1 +  \sum^{K-1}_{k=1}e^{\beta_{k}\cdot X_{i}}}$$
+We can use this to find the other probabilities:
+$$Pr(Y_{i} = 1) = \frac{e^{\beta_{1}\cdot X_{i}}}{1 +  \sum^{K-1}_{k=1}e^{\beta_{k}\cdot X_{i}}}$$
+$$Pr(Y_{i} = 2) = \frac{e^{\beta_{2}\cdot X_{i}}}{1 +  \sum^{K-1}_{k=1}e^{\beta_{k}\cdot X_{i}}}$$
+$$\cdots$$
+$$Pr(Y_{i} = K-1) = \frac{e^{\beta_{K-1}\cdot X_{i}}}{1 +  \sum^{K-1}_{k=1}e^{\beta_{k}\cdot X_{i}}}$$
+$$Pr(Y_{i} = K) = \frac{1}{1 +  \sum^{K-1}_{k=1}e^{\beta_{k}\cdot X_{i}}}$$
+
+
+## Importance of the multinomial logistic regression model
+
+Multinomial Logistic Regression Model is useful to classify our interested subjects into several categories based on values of the predictor variables. Comparing to logistic regression, it is more general since the response variable is not restricted to only two categories. 
+
+## Data Summary
+In this tutorial, we will work on the *Iris flower data set*, which is a multivariate data set introduced by Ronald Fisher in 1936. Thus it is also refered as famout Fisher's Iris data set. The data set consists of three species of Iris and each species has 50 samples. Each sample contains four characteristics and they are width and length of the sepals and petals, in centimeters. Thus the iris data set is a 150-row, 5-column table. Generally, the iris data set is used to do classification for iris flowers where each sample contains different information of sepals and petals. What we need to do is to build a classifier which can be judged through the four characteristics of samples belongs to setosa, versicolor or Virginica iris.
+
+Below are pictures of three species of Iris flowers. 
+
+![](https://github.com/SUIIAO/STATS506_GROUP12/raw/master/iris_picture.png)
+
+We can obtain Iris data from [here](https://www.kaggle.com/vvenanccio/irisflowers). Also, this dataset is already contained in R. Therefore just by loading it, Iris data is available to use in R. The dataset contains a set of 150 records under five attributes - petal length, petal width, sepal length, sepal width and species. Description of variables are as followed.
+
+| Variables | Description | Data type |
+|----------------|-------------------------------------|-------------------------|
+| Sepal.Length   | sepal length in centimeters         |positive real number |
+| Sepal.Width    | sepal width in centimeters          |positive real number |
+| Petal.Length   | petal length in centimeters         |positive real number |
+| petal.Width    | petal width in centimeters          |positive real number |
+| Species        | species         |categorical(setosa/versicolour/virginica) |
+
+
+## Our Model
+Our task is to model two equations below using R(multinom), Stata(mlogit) and SAS(proc logistic) with Iris data set. 
+
+
+$$ln\frac{Pr(Species = setosa)}{Pr(Species = virginica)} = \beta_{10} + \beta_{11}\cdot Sepal.Length + \beta_{12}\cdot Sepal.Width + \beta_{13}\cdot Petal.Length + \beta_{14}\cdot Petal.Width X_{i}$$
+$$ln\frac{Pr(Species = versicolor)}{Pr(Species = virginica)} = \beta_{20} + \beta_{21}\cdot Sepal.Length + \beta_{22}\cdot Sepal.Width + \beta_{23}\cdot Petal.Length + \beta_{24}\cdot Petal.Width X_{i}$$
+
+# {.tabset}
+
+## R
+### Load the data
+First, we need to load iris data into R. It is possible to download the data from [here](https://www.kaggle.com/vvenanccio/irisflowers), but iris dataset is already contained in R. Therefore, just by loading it, iris data will be available and can be used.
+
+```{r}
+data(iris)
+```
+
+### Description of the data 
+This is what the first 6 rows look like. 
+
+```{r}
+head(iris)
+```
+
+We can get basic descriptives for the entire data set by using summary.
+
+```{r}
+summary(iris)
+```
+
+### Seperate the data into training set and testing set
+
+We partition the data into two parts - a training set consisting of the first 40 observations for each species and a testing set of the remaining 10 observations for each species. We use a training set to build and estimate the model and a testing set to see how well the model does on new data not used in the constuction of the model.
+
+```{r}
+train_1 = iris[1:40,]; train_2 = iris[51:90,]; train_3 = iris[101:140,]
+train = rbind(train_1,train_2); train = rbind(train, train_3)
+test_1 = iris[41:50,]; test_2 = iris[91:100,]; test_3 = iris[141:150,]
+test = rbind(test_1,test_2); test = rbind(test, test_3)
+```
+
+### Build the multinomial logistic regression model using the train set
+Below we use the *multinom* function from the *nnet* package to estimate a multinomial logistic regression model. Before running our model, we choose the level of our outcome that we wish to use our baseline and specify this in the *relevel* function. We pick "virginica" as our baseline. Then, we run our model using *multinom*. The *nnet* package does not include p-value calculation for the regression coefficients, so we calculate p-values using Wald tests(here z-tests).  
+
+```{r}
+library(nnet)
+train$species2 = relevel(train$Species, ref = "virginica")
+model = multinom(species2 ~ Sepal.Length + Sepal.Width + 
+                    Petal.Length + Petal.Width , data = train)
+summary(model)
+z = summary(model)$coefficients/summary(model)$standard.errors
+z
+p = (1 - pnorm(abs(z), 0, 1)) * 2
+p
+```
+
+we first see that some output is generated by running the model, even though we are assigning the model to a new R object. This model-running output includes some iteration history and include the final negative log-likelihood **5.923148**. This value multiplied by two is then see in the model summary as the Residual Deviance.
+
+The model summary output has a block of coefficients and a block of standard errors. Each of these blocks has one row of values corresponding to a model equation. Two models are tested in this multinomial regression, one comparing membership to setosa versus virginica and one comparing membership to versicolor versus virginica. They correspond to the two equations below:
+
+\[ \begin{split} ln\frac{Pr(Species = setosa)}{Pr(Species = virginica)} = & 5.28918 +10.978504\times Sepal.Length + 16.793690\times Sepal.Width\\ & -23.702171 \times Petal.Length -18.17830\times Petal.Width \end{split} \] \[ \begin{split} ln\frac{Pr(Species = versicolor)}{Pr(Species = virginica)} = & 41.55886 + 2.416804\times Sepal.Length +  6.591888\times Sepal.Width\\ & -9.215024\times Petal.Length -17.93605\times Petal.Width \end{split} \]
+
+Through the p-values, we can see all of the coefficients of the first model(setosa vs. virginica) are not significant while some of the coefficients of the second model(versicolor vs. virginica) are significant. It means we may need to combine setosa and virginica. Then the model becomes a binomial logistic regression model.  
+
+
+### Test the accuracy of model using the test set
+
+Now we can test our model using a test set data. We compute the accuracy rate. The result is 1. Good performance!
+
+
+```{r}
+## Test the accuracy of model using the test set
+library(data.table)
+# generate predictions of probabilities for each species using the model
+a = predict(model, newdata =test, "probs")
+a = data.table(a)
+# generate species data of each observation based on the model 
+b = rep(1,30)                
+b[which(a$versicolor == apply(a, 1, max))]=2              
+b[which(a$virginica == apply(a, 1, max))]=3 
+# generate species data based on true observation
+c = c(rep(1,10), rep(2,10), rep(3,10))
+# compute the accuracy ratio 
+accuracy = sum(b==c)/30
+accuracy
+```
+
+### References
+
+- Multinomial Logistic Regression Algorithm Description: https://en.wikipedia.org/wiki/Multinomial_logistic_regression
+
+- iris data description : https://en.wikipedia.org/wiki/Iris_flower_data_set
+
+- picture of iris : http://www.lac.inpe.br/~rafael.santos/Docs/R/CAP394/WholeStory-Iris.html
+
+- multinomial logistic regression in R : https://stats.idre.ucla.edu/r/dae/multinomial-logistic-regression/
+
+- multinomial logistic regression in SAS : https://stats.idre.ucla.edu/sas/dae/multinomiallogistic-regression/
+
+- multinomial logistic regression in STATA : https://stats.idre.ucla.edu/stata/dae/multinomiallogistic-regression/
+
+## SAS
+
+### Read the data into SAS
+We use proc import to import the dataset.
+```sas
+FILENAME REFFILE '/Iris.csv';
+
+PROC IMPORT DATAFILE=REFFILE
+	DBMS=CSV
+	OUT=work.import;
+	GETNAMES=YES;
+RUN;
+```
+
+### Description of Data
+We get basic descriptives for the entire data set by using proc summary.
+```sas
+proc summary data=work.import min q1 mean q3 max std n;
+var Sepal_Length Sepal_Width Petal_Length Petal_Width;
+by Species;
+output out = iris_summary;
+
+proc print data = iris_summary;
+title 'Summary of Iris data set';
+run;
+```
+<div align=center> 
+![](https://github.com/SUIIAO/STATS506_GROUP12/raw/master/SAS/sas_data_summary.PNG)
+
+### Separate the data into train set and test set
+We separate the data into two parts - a training set consisting of the first 40 observations for each species and a testing set of the remaining 10 observations for each species. We use a training set to build and estimate the model and a testing set to see how well the model does on new data not used in the constuction of the model.
+```sas
+data train;
+set work.import;
+if _N_ in (1:40, 51:90, 101:140) then output;
+run;
+
+data test;
+set work.import;
+if _N_ in (41:50, 91:100, 141:150) then output;
+run;
+```
+
+### Build the multinomial logistic regression model by train set
+Below we use proc logistic to estimate a multinomial logistic regression model. We can specify the baseline category for species using (ref = virginica). Then we get the detailed fitting result. Finally, we use test set to predict their species.
+
+```sas
+proc logistic data = train;
+class species (ref = "virginic");
+model species =  Sepal_Length Sepal_Width Petal_Length Petal_Width / link = glogit;
+score data=test out=valpred;
+title 'Multinomial Logistic Regression Model';
+run;
+```
+<div align=center> 
+![](https://github.com/SUIIAO/STATS506_GROUP12/raw/master/SAS/model_summary_1.PNG)
+![](https://github.com/SUIIAO/STATS506_GROUP12/raw/master/SAS/model_summary_2.PNG)
+
+<div align=left> 
+In the output above, the likelihood ratio chi-square of 251.8012 with a p-value < 0.0001 tells us that our model as a whole fits significantly better than an empty model (i.e., a model with no predictors)
+
+Two models are tested in this multinomial regression, one comparing membership to setosa versus virginic and one comparing membership to versicolor versus virginic. They correspond to the two equations below:
+
+$$
+\begin{split}
+ln\frac{Pr(Species = setosa)}{Pr(Species = virginica)} = & 35.8688 +2.3092\times Sepal.Length + 13.1311\times Sepal.Width\\ &- 12.5865\times Petal.Length - 23.8865\times Petal.Width
+\end{split}
+$$
+$$
+\begin{split}
+ln\frac{Pr(Species = versicolor)}{Pr(Species = virginica)} = & 41.1253 +2.4109\times Sepal.Length + 6.5280\times Sepal.Width\\ &- 9.1397\times Petal.Length - 17.7683\times Petal.Width
+\end{split}
+$$
+
+<div align=left>
+### Test the accuracy of model by test set
+Based on the fitted model, now we can predict the each species probability of the testing data set. Each predicted species probability is between 0 and 1, hence we regard the highest probability one as its species. 
+
+Compared to the true species situation, we compute the accuracy rate which is 1. Good performance!
+```sas
+/*Test the accuracy of our model on the test set*/
+data prediction;
+ set valpred;
+ species_pre = 0;
+ species_ori = 0;
+ accuracy = 1;
+/*Labe the original species into 1(setosa), 2(versicolor), 3(virginica)
+and generate a new variable species_orei to save that label*/
+ if species = 'setosa' then species_ori=1;
+ if species = 'versicol' then species_ori=2; 
+ if species = 'virginic' then species_ori=3;
+/*Choose the highest probability of three speices as the final result*/
+ if P_setosa > P_versicol and p_setosa > P_virginic then species_pre=1;
+ if P_versicol > P_setosa and P_versicol > P_virginic then species_pre=2; 
+ if P_virginic > P_setosa and P_virginic > P_versicol then species_pre=3;
+/*Compare the original species and the predict species and reserve the 
+data with same result*/
+ if species_ori > species_pre then delete;
+ if species_ori < species_pre then delete;
+ keep species accuracy;
+
+/*Compute accuracy ratio*/
+proc summary data=prediction;
+output out=accuracy
+sum(accuracy) = accuracy;
+
+data final;
+set accuracy;
+accuracy = accuracy/30;
+
+proc print data=final;
+title 'Test the Accuracy by Test Set';
+run;
+```
+<div align=center> 
+![](https://github.com/SUIIAO/STATS506_GROUP12/raw/master/SAS/Accuracy.PNG)
+
+### References
+
+- Multinomial Logistic Regression Algorithm Description: https://en.wikipedia.org/wiki/Multinomial_logistic_regression
+
+- iris data description : https://en.wikipedia.org/wiki/Iris_flower_data_set
+
+- picture of iris : http://www.lac.inpe.br/~rafael.santos/Docs/R/CAP394/WholeStory-Iris.html
+
+- multinomial logistic regression in R : https://stats.idre.ucla.edu/r/dae/multinomial-logistic-regression/
+
+- multinomial logistic regression in SAS : https://stats.idre.ucla.edu/sas/dae/multinomiallogistic-regression/
+
+- multinomial logistic regression in STATA : https://stats.idre.ucla.edu/stata/dae/multinomiallogistic-regression/
+
+## Stata
+### Load the data
+We start with loading the data and then present the first 5 rows. 
+```stata
+clear all
+* Loading the data
+import delimited iris.csv 
+list in 1/5
+```
+![](https://github.com/xhui7819/STATS506_GROUP12/raw/master/Stata/Frist_5_Rows.png)
+
+### Description of Data
+Then we get the basic description for both predictors and responses. 
+```stata
+* Discription of Data
+summarize sepal_length sepal_width petal_length petal_width
+```
+![](https://github.com/xhui7819/STATS506_GROUP12/raw/master/Stata/Summary_Predictors.png)
+
+```stata
+tab species 
+```
+![](https://github.com/xhui7819/STATS506_GROUP12/raw/master/Stata/Summary_Response.png)
+
+### Separate the data into train set and test set
+We partition the data into two parts - a training set consisting of the first 40 observations for each species and a testing set of the remaining 10 observations for each species. We use a training set to build and estimate the model and a testing set to see how well the model does on new data not used in the constuction of the model.
+```stata
+* Separate the data into train set and test set
+gene seqnum=_n
+generate training = 1 if seqnum <= 40 | seqnum >= 51 & seqnum <= 90 | seqnum >= 101 & seqnum <= 140
+replace training = 0 if training == .
+```
+
+### Build the multinomial logistic regression model by train set
+Below we use the mlogit command to estimate a multinomial logistic regression model. In the model, we choose to pick virginica as the baseline category and then fitting the model.
+```stata
+* In the model, we choose to pick virginica as the baseline category 
+* Since mlogit only accepts numeric arguments, thus encoding string into numeric
+encode species, generate(new_species)
+mlogit new_species sepal_length sepal_width petal_length petal_width if training == 1, base(3)
+```
+![](https://github.com/xhui7819/STATS506_GROUP12/raw/master/Stata/Logistic_Regression.png)
+
+From the output, we can notice the likelihood ratio chi-square is 251.82 with p-value 0, which means our model fits significantly better than model with no predictors. 
+
+From the regression coefficient, we notice length and width of petal are negatively related with relatively log odds in both case; while length and width of sepal is positively related with log odds in both case. For example, a one-unit increase in the variable sepal_length is associated with a 2.46 increase in the relative log odds of being in setosa v.s. virginica. 
+
+#### Relative Risk 
+Relative Risk is defined as the ratio of probability of one outcome category over the probability of baseline category. In this case, the relative risk in setosa v.s. virginica is the ratio of probability of setosa over the probability of virginica. Here we can use the mlogit, rrr command to get the regression results in the form of relative risk ratios. 
+```stata
+mlogit, rrr
+```
+![](https://github.com/xhui7819/STATS506_GROUP12/raw/master/Stata/Relative_Risk.png)
+In fact, the relative risk in the table can be obtained by exponentiating the regression coefficients above. For instance, the ralative risk for the on-unit increase in the  variable sepal_length is 11.698 insetosa v.s. virginica, which can be obtained by exp(2.459417) from the output of regression coefficients. 
+
+### Test the accuracy of model by test set
+We test our model by using the testing dataset. We predict the probability of each species in the testing dataset based on the fitted model, and then, treat the species with highest probability as the final species. 
+Comparing the predicted species with original ones, we find there is no difference between them. Good Performance!
+```stata
+* Get the Prediction by using test dataset
+keep if training == 0 
+predict setosa
+predict versicolor, equation(versicolor)
+predict virginica, equation(virginica)
+* Encode the origin species to numbers 
+gen species_ori = 1 if species == "setosa"
+replace species_ori = 2 if species == "versicolor"
+replace species_ori = 3 if species == "virginica"
+* Consider the catogory of highest probability as the last predict model 
+gen species_pre=1 if setosa > versicolor & setosa > virginica
+replace species_pre=2 if versicolor > setosa & versicolor > virginica
+replace species_pre=3 if virginica > setosa & virginica > versicolor
+* Check the difference between prediction and the original category
+display 1-(species_pre - species_ori)
+```
+![](https://github.com/SUIIAO/STATS506_GROUP12/raw/master/Stata/Accuracy.png)
+
+
+### References
+
+- Multinomial Logistic Regression Algorithm Description: https://en.wikipedia.org/wiki/Multinomial_logistic_regression
+
+- iris data description : https://en.wikipedia.org/wiki/Iris_flower_data_set
+
+- picture of iris : http://www.lac.inpe.br/~rafael.santos/Docs/R/CAP394/WholeStory-Iris.html
+
+- multinomial logistic regression in R : https://stats.idre.ucla.edu/r/dae/multinomial-logistic-regression/
+
+- multinomial logistic regression in SAS : https://stats.idre.ucla.edu/sas/dae/multinomiallogistic-regression/
+
+- multinomial logistic regression in STATA : https://stats.idre.ucla.edu/stata/dae/multinomiallogistic-regression/
+
+
+## Output summary
+
+The results summary are as followed. The coefficients for predictors from 3 language examples are different. Interestingly, the coefficients in the model comparing virginica with setosa are quite different while the coefficients in the model comparing virginica with versicolor are pretty similar with some errors.  
+
+Setosa
+
+|     | intercept | Sepal.Length | Sepal.Width  | Petal.Length | petal.Width |
+|---- | --------- | ----------| ----------  | ----------| ---------- | 
+|R    | 5.29  | 10.98 | 16.79 | -23.70 | -18.18 | 
+|SAS  | 35.87 | 2.31  | 13.13 | -12.59| -23.89 | 
+|STATA| 32.23 | 2.46  | 22.67 | -19.65| -32.76| 
+
+
+Versicolor
+
+|     | intercept | Sepal.Length | Sepal.Width  | Petal.Length | petal.Width |
+|---- | --------- | ----------| ----------  | ----------| ---------- | 
+|R    | 41.56 | 2.42 | 6.59 | -9.22 | -17.94 | 
+|SAS  | 41.13 | 2.41 | 6.53 | -9.14 | -17.77 | 
+|STATA| 41.79 | 2.41 | 6.61 | -9.25 | -17.99 | 
+
+
+It may be because the coefficients of the former are not significant at all while some of the coefficients of the latter are significant.
+
+p-value calculated in R
+
+|     | intercept | Sepal.Length | Sepal.Width  | Petal.Length | petal.Width |
+|---- | --------- | ----------| ----------  | ----------| ---------- | 
+|Setosa  | 0.7764003  | 0.5530163 | 0.7705312 | 0.75369076 | 0.65243097 | 
+|versicolor  | 0.1023063 | 0.3109783  | 0.1394882 | 0.04962134 | 0.06600218 |
+
+p-value calculated in SAS
+
+|     | intercept | Sepal.Length | Sepal.Width  | Petal.Length | petal.Width |
+|---- | --------- | ----------| ----------  | ----------| ---------- | 
+|Setosa  | 0.8338  | 0.9582 | 0.8020 | 0.8001 | 0.7977 | 
+|versicolor  | 0.1014 | 0.3102  | 0.1399 | 0.0486 | 0.0655 |
+
+p-value calculated in Stata
+
+|     | intercept | Sepal.Length | Sepal.Width  | Petal.Length | petal.Width |
+|---- | --------- | ----------| ----------  | ----------| ---------- | 
+|Setosa  | 1.000  | 1.000 | 1.000 | 1.000 | 1.000 | 
+|versicolor  | 0.312 | 0.140  | 0.050 | 0.066 | 0.102 |
+
+Finnaly, we test our model in 3 languages using the same test dataset and find that the model accuracy rate is 1, which means our model performs good.
+
+### References
+
+- Multinomial Logistic Regression Algorithm Description: https://en.wikipedia.org/wiki/Multinomial_logistic_regression
+
+- iris data description : https://en.wikipedia.org/wiki/Iris_flower_data_set
+
+- picture of iris : http://www.lac.inpe.br/~rafael.santos/Docs/R/CAP394/WholeStory-Iris.html
+
+- multinomial logistic regression in R : https://stats.idre.ucla.edu/r/dae/multinomial-logistic-regression/
+
+- multinomial logistic regression in SAS : https://stats.idre.ucla.edu/sas/dae/multinomiallogistic-regression/
+
+- multinomial logistic regression in STATA : https://stats.idre.ucla.edu/stata/dae/multinomiallogistic-regression/
+
+
