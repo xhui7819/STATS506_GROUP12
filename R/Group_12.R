@@ -18,14 +18,16 @@ train = rbind(train_1,train_2); train = rbind(train, train_3)
 test_1 = iris[41:50,]; test_2 = iris[91:100,]; test_3 = iris[141:150,]
 test = rbind(test_1,test_2); test = rbind(test, test_3)
 
-## Build the multinomial logistic regression model using the train set
+## Build the multinomial logistic regression model using the train set  
+# we use multinom function of nnet library
+# In the model, we use 'virginica' as the baseline category
 library(nnet)
 train$species2 = relevel(train$Species, ref = "virginica")
 model = multinom(species2 ~ Sepal.Length + Sepal.Width + 
                     Petal.Length + Petal.Width , data = train)
 
 summary(model)
-## calculate p-values
+# calculate p-values
 z = summary(model)$coefficients/summary(model)$standard.errors
 z
 p = (1 - pnorm(abs(z), 0, 1)) * 2
@@ -33,11 +35,15 @@ p
 
 ## Test the accuracy of model using the test set
 library(data.table)
+# generate predictions of probabilities for each species using the model
 a = predict(model, newdata =test, "probs")
 a = data.table(a)
+# generate species data of each observation based on the model 
 b = rep(1,30)                
 b[which(a$versicolor == apply(a, 1, max))]=2              
-b[which(a$virginica == apply(a, 1, max))]=3     
+b[which(a$virginica == apply(a, 1, max))]=3 
+# generate species data based on true observation
 c = c(rep(1,10), rep(2,10), rep(3,10))
+# compute the accuracy ratio 
 accuracy = sum(b==c)/30
-
+accuracy
