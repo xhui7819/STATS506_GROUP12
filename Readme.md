@@ -4,6 +4,8 @@ This repo contains files of our final project "Multinomial Logistic Regression (
 
   - The script [Group_12.Rmd](./Group_12.Rmd) has rmd code for our project.
 
+  - The Html [Group_12.html](./Group_12.html) is our proposal.
+
   - The picture [iris_picture](./iris_picture.png) is to help people find the difference among Iris setosa, Iris virginica and Iris versicolor.
 
 ### R
