@@ -3,7 +3,7 @@ clear all
 import delimited iris.csv 
 list in 1/5
 
-* Discription of Data
+* Description of Data
 summarize sepal_length sepal_width petal_length petal_width
 tab species 
 * Check the missing values 
@@ -34,7 +34,5 @@ gen species_pre=1 if setosa > versicolor & setosa > virginica
 replace species_pre=2 if versicolor > setosa & versicolor > virginica
 replace species_pre=3 if virginica > setosa & virginica > versicolor
 * Check the difference between prediction and the original category
-display species_pre - species_ori
-
-
+display 1-(species_pre - species_ori)
 
