@@ -43,16 +43,20 @@ data prediction;
  species_pre = 0;
  species_ori = 0;
  accuracy = 1;
+/*Labe the original species into 1(setosa), 2(versicolor), 3(virginica) and generate a new variable species_orei to save that label*/
  if species = 'setosa' then species_ori=1;
  if species = 'versicol' then species_ori=2; 
  if species = 'virginic' then species_ori=3;
+/*Choose the highest probability of three speices as the final result*/
  if P_setosa > P_versicol and p_setosa > P_virginic then species_pre=1;
  if P_versicol > P_setosa and P_versicol > P_virginic then species_pre=2; 
  if P_virginic > P_setosa and P_virginic > P_versicol then species_pre=3;
+/*Compare the original species and the predict species and reserve the data with same result*/
  if species_ori > species_pre then delete;
  if species_ori < species_pre then delete;
  keep species accuracy;
- 
+
+/*Compute accuracy ratio*/
 proc summary data=prediction;
 output out=accuracy
 sum(accuracy) = accuracy;
